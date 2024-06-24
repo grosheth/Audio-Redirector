@@ -18,8 +18,7 @@ ffmpeg_command = [
     '-f', 'mpegts',
     'udp://localhost:12345'
 ]
-#
-#
+
 try:
     while True:
         pass
