@@ -5,7 +5,7 @@ in pkgs.mkShell {
     (pkgs.python311.withPackages (python-pkgs: [
       python-pkgs.pyaudio
       python-pkgs.socket
-      python-pkgs.ffmpeg-python
+      # python-pkgs.ffmpeg-python
     ]))
   ];
 }

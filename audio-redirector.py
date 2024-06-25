@@ -1,26 +1,24 @@
-import ffmpeg
+"""PyAudio Example: Play a WAVE file."""
 
+import pyaudio
+import numpy as np
+from matplotlib import pyplot as plt
 
+CHUNKSIZE = 1024
 
-# stream = ffmpeg.formats('pulse')
-stream = ffmpeg.input('audio=default')
-stream = ffmpeg.output(stream, 'format=wav', '/tmp/pulse.wav')
-ffmpeg.run(stream)
+# initialize portaudio
+p = pyaudio.PyAudio()
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=CHUNKSIZE)
 
+# do this as long as you want fresh samples
+data = stream.read(CHUNKSIZE)
+numpydata = np.frombuffer(data, dtype=np.int16)
 
+# plot data
+plt.plot(numpydata)
+plt.show()
 
-
-# FFmpeg command
-ffmpeg_command = [
-    'ffmpeg',
-    '-f', 'pulse',
-    '-i', 'audio=default', '/tmp/pulse.wav', # Change to your virtual audio device name
-    '-f', 'mpegts',
-    'udp://localhost:12345'
-]
-
-try:
-    while True:
-        pass
-except KeyboardInterrupt:
-    exit()
+# close stream
+stream.stop_stream()
+stream.close()
+p.terminate()
