@@ -1,0 +1,5 @@
+cffi==1.16.0
+ffmpeg-python==0.2.0
+future==1.0.0
+pycparser==2.22
+sounddevice==0.4.7
