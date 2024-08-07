@@ -1,28 +1,45 @@
 """PyAudio Example: Record a few seconds of audio and save to a wave file."""
-
-import wave
-import sys
-
 import pyaudio
+import numpy as np
+from matplotlib import pyplot as plt
 
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 1 if sys.platform == 'darwin' else 2
-RATE = 44100
-RECORD_SECONDS = 5
+CHUNKSIZE = 1024 # fixed chunk size
 
-with wave.open('output.wav', 'wb') as wf:
-    p = pyaudio.PyAudio()
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(p.get_sample_size(FORMAT))
-    wf.setframerate(RATE)
+# initialize portaudio
+p = pyaudio.PyAudio()
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=CHUNKSIZE)
 
-    stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True)
+# do this as long as you want fresh samples
+data = stream.read(CHUNKSIZE)
+numpydata = np.frombuffer(data, dtype=np.int16)
 
-    print('Recording...')
-    for _ in range(0, RATE // CHUNK * RECORD_SECONDS):
-        wf.writeframes(stream.read(CHUNK))
-    print('Done')
+# plot data
+plt.plot(numpydata)
+plt.show()
 
-    stream.close()
-    p.terminate()
+# close stream
+stream.stop_stream()
+stream.close()
+p.terminate()
+
+# def generate_sample(ob, preview):
+#     print("* Generating sample...")
+#     tone_out = array(ob, dtype=int16)
+#
+#     if preview:
+#         print("* Previewing audio file...")
+#
+#         bytestream = tone_out.tobytes()
+#         pya = pyaudio.PyAudio()
+#         stream = pya.open(format=pya.get_format_from_width(width=2), channels=1, rate=OUTPUT_SAMPLE_RATE, output=True)
+#         stream.write(bytestream)
+#         stream.stop_stream()
+#         stream.close()
+#
+#         pya.terminate()
+#         print("* Preview completed!")
+#     else:
+#         write('sound.wav', SAMPLE_RATE, tone_out)
+#         print("* Wrote audio file!")
+#
+# generate_sample()
