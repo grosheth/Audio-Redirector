@@ -1,45 +1,39 @@
-"""PyAudio Example: Record a few seconds of audio and save to a wave file."""
-import pyaudio
-import numpy as np
-from matplotlib import pyplot as plt
+import asyncio
+import signal
+from contextlib import suppress
+import pulsectl_asyncio
 
-CHUNKSIZE = 1024 # fixed chunk size
 
-# initialize portaudio
-p = pyaudio.PyAudio()
-stream = p.open(format=pyaudio.paInt16, channels=1, rate=44100, input=True, frames_per_buffer=CHUNKSIZE)
 
-# do this as long as you want fresh samples
-data = stream.read(CHUNKSIZE)
-numpydata = np.frombuffer(data, dtype=np.int16)
+# This shows output as a graph in terminal
 
-# plot data
-plt.plot(numpydata)
-plt.show()
+async def listen(pulse: pulsectl_asyncio.PulseAsync, source_name: str):
+    async for level in pulse.subscribe_peak_sample(source_name, rate=5):
+        print('\x1b[2K\x1b[0E', end='')  # return to beginning of line
+        num_o = round(level * 80)
+        print('O' * num_o + '-' * (80-num_o), end='', flush=True)
 
-# close stream
-stream.stop_stream()
-stream.close()
-p.terminate()
 
-# def generate_sample(ob, preview):
-#     print("* Generating sample...")
-#     tone_out = array(ob, dtype=int16)
-#
-#     if preview:
-#         print("* Previewing audio file...")
-#
-#         bytestream = tone_out.tobytes()
-#         pya = pyaudio.PyAudio()
-#         stream = pya.open(format=pya.get_format_from_width(width=2), channels=1, rate=OUTPUT_SAMPLE_RATE, output=True)
-#         stream.write(bytestream)
-#         stream.stop_stream()
-#         stream.close()
-#
-#         pya.terminate()
-#         print("* Preview completed!")
-#     else:
-#         write('sound.wav', SAMPLE_RATE, tone_out)
-#         print("* Wrote audio file!")
-#
-# generate_sample()
+async def main():
+    async with pulsectl_asyncio.PulseAsync('peak-listener') as pulse:
+        # Get name of monitor_source of default sink
+        server_info = await pulse.server_info()
+        default_sink_info = await pulse.get_sink_by_name(server_info.default_sink_name)
+        source_name = default_sink_info.monitor_source_name
+
+        # Start listening/monitoring task
+        listen_task = loop.create_task(listen(pulse, source_name))
+
+        # register signal handlers to cancel listener when program is asked to terminate
+        # Alternatively, the PulseAudio event subscription can be ended by breaking/returning from the `async for` loop
+        for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+            loop.add_signal_handler(sig, listen_task.cancel)
+
+        with suppress(asyncio.CancelledError):
+            await listen_task
+            print()
+
+
+# Run event loop until main_task finishes
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
